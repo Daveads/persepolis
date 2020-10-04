@@ -15,6 +15,8 @@
 
 from PyQt5.QtCore import Qt, QEvent, QTime, QSize, QPoint, QDir, QTranslator, QCoreApplication, QLocale
 from PyQt5.QtWidgets import QFileDialog, QStyleFactory, QMessageBox, QTableWidgetItem
+
+from persepolis.constants import OS
 from persepolis.gui.setting_ui import Setting_Ui, KeyCapturingWindow_Ui
 from persepolis.scripts.useful_tools import returnDefaultSettings
 from PyQt5.QtGui import QFont, QKeySequence
@@ -101,7 +103,7 @@ class PreferencesWindow(Setting_Ui):
 
         self.ariaCheckBoxToggled('aria2')
 
-        if os_type == 'Linux' or os_type == 'FreeBSD' or os_type == 'OpenBSD':
+        if os_type in OS.UNIX_LIKE:
             for widget in self.aria2_path_checkBox, self.aria2_path_lineEdit, self.aria2_path_pushButton:
                 widget.hide()
 
@@ -124,14 +126,14 @@ class PreferencesWindow(Setting_Ui):
             int(self.persepolis_setting.value('sound-volume')))
 
         # set style
-        # if style_comboBox is changed, self.styleComboBoxChanged is called.
-        self.style_comboBox.currentIndexChanged.connect(self.styleComboBoxChanged)
-
         # find available styles(It's depends on operating system and desktop environments).
         available_styles = QStyleFactory.keys()
         for style in available_styles:
-            # 'GTK' or 'gtk' styles may cause to crashing! Eliminate them!
-            if 'gtk' not in str(style) and 'GTK' not in str(style):
+
+            # 'bb10dark', 'GTK', 'gtk' styles may cause to crashing! Eliminate them!
+            style_black_list = ['bb10dark', 'bb10bright', 'GTK', 'gtk', 'gtk2']
+
+            if style not in style_black_list:
                 self.style_comboBox.addItem(style)
 
         # System >> for system default style
@@ -144,33 +146,27 @@ class PreferencesWindow(Setting_Ui):
             self.style_comboBox.setCurrentIndex(current_style_index)
 
         # available language
-        available_language = ['en_US', 'fa_IR', 'zh_CN', 'fr_FR', 'pl_PL', 'nl_NL', 'pt_BR', 'es_ES']
+        available_language = ['en_US', 'fa_IR', 'ar', 'zh_CN', 'fr_FR', 'pl_PL', 'nl_NL', 'pt_BR', 'es_ES', 'hu', 'tr', 'tr_TR']
         for lang in available_language:
             self.lang_comboBox.addItem(str(QLocale(lang).nativeLanguageName()), lang)
 
         current_locale = self.lang_comboBox.findData(
             str(self.persepolis_setting.value('locale')))
         self.lang_comboBox.setCurrentIndex(current_locale)
-        self.lang_comboBox.currentIndexChanged.connect(self.styleComboBoxChanged)
-        self.styleComboBoxChanged()
-
-        current_color_index = self.color_comboBox.findText(
-            str(self.persepolis_setting.value('color-scheme')))
-        self.color_comboBox.setCurrentIndex(current_color_index)
 
         self.current_icon = self.persepolis_setting.value('icons')
 
         # icon size
         size = ['128', '64', '48', '32', '24', '16']
+
         self.icons_size_comboBox.addItems(size)
         current_icons_size_index = self.icons_size_comboBox.findText(
             str(self.persepolis_setting.value('toolbar_icon_size')))
+
         self.icons_size_comboBox.setCurrentIndex(current_icons_size_index)
 
-        # call iconSizeComboBoxCanged if index is changed
-        self.icons_size_comboBox.currentIndexChanged.connect(self.iconSizeComboBoxCanged)
-
-        self.iconSizeComboBoxCanged(1)
+        # call setDarkLightIcon if index is changed
+        self.icons_size_comboBox.currentIndexChanged.connect(self.setDarkLightIcon)
 
         # set notification
         notifications = ['Native notification', 'QT notification']
@@ -388,6 +384,14 @@ class PreferencesWindow(Setting_Ui):
         for member in self.persepolis_setting.allKeys():
             self.first_key_value_dict[member] = str(self.persepolis_setting.value(member))
 
+
+        # if style_comboBox is changed, self.styleComboBoxChanged is called.
+        self.style_comboBox.currentIndexChanged.connect(self.styleComboBoxChanged)
+
+        self.styleComboBoxChanged()
+
+        self.color_comboBox.currentIndexChanged.connect(self.setDarkLightIcon)
+
         self.persepolis_setting.endGroup()
 
         # setting window size and position
@@ -399,33 +403,6 @@ class PreferencesWindow(Setting_Ui):
         self.resize(size)
         self.move(position)
 
-    # Papirus icons can be used with small sizes(smaller than 48)
-    def iconSizeComboBoxCanged(self, index):
-        self.icon_comboBox.clear()
-        selected_size = int(self.icons_size_comboBox.currentText())
-        if selected_size < 48:
-            # add Papirus-light and Papirus-Dark icons to the list
-            icons = ['Breeze', 'Breeze-Dark', 'Papirus',
-                    'Papirus-Dark', 'Papirus-Light']
-            self.icon_comboBox.addItems(icons)
-
-            current_icons_index = self.icon_comboBox.findText(
-                str(self.persepolis_setting.value('icons', self.current_icon)))
-
-        else:
-            # eliminate Papirus-light and Papirus-Dark from list
-            icons = ['Breeze', 'Breeze-Dark', 'Papirus']
-            self.icon_comboBox.addItems(icons)
-
-            # current_icons_index is -1, if findText couldn't find icon index.
-            current_icons_index = self.icon_comboBox.findText(
-                str(self.persepolis_setting.value('icons', self.current_icon)))
-
-            # set 'Breeze' if current_icons_index is -1
-            if current_icons_index == -1:
-                current_icons_index = 1
-
-        self.icon_comboBox.setCurrentIndex(current_icons_index)
 
     # run this method if user doubleclicks on an item in shortcut_table
     def showCaptureKeyboardWindow(self):
@@ -466,7 +443,6 @@ class PreferencesWindow(Setting_Ui):
 
     # active color_comboBox only when user is select "Fusion" style.
     def styleComboBoxChanged(self, index=None):
-
         # clear color_comboBox
         self.color_comboBox.clear()
 
@@ -490,28 +466,124 @@ class PreferencesWindow(Setting_Ui):
             # enable color_comboBox
             self.color_comboBox.setEnabled(True)
 
-            # get current language
-            selected_language = self.lang_comboBox.currentText()
-
             # color_comboBox items
-            color_scheme = ['System', 'Dark Fusion', 'Light Fusion'] 
+            color_scheme = ['Dark Fusion', 'Light Fusion'] 
 
             # add items
             self.color_comboBox.addItems(color_scheme)
 
-            # set 'Persepolis Light Blue' for color_scheme
-            current_color_index = self.color_comboBox.findText('System')
+            current_color_index = self.color_comboBox.findText(
+                str(self.persepolis_setting.value('color-scheme')))
+
+            # it means user's preferred color_scheme is not valid in color_comboBox.
+            if current_color_index == -1:
+                current_color_index = 0
+
             self.color_comboBox.setCurrentIndex(current_color_index)
+
+        self.setDarkLightIcon()
+
+    # this method sets dark icons for dark color schemes
+    # and light icons for light color schemes.
+    def setDarkLightIcon(self, index=None):
+
+        dark_theme = None
+
+        # find selected style
+        selected_style = self.style_comboBox.currentText()
+
+        # clear icon_comboBox
+        self.icon_comboBox.clear()
+
+        # Papirus icons can be used with small sizes(smaller than 48)
+        # get user's selected icons size
+        selected_size = int(self.icons_size_comboBox.currentText())
+
+        if selected_style == 'Fusion':
+            if self.color_comboBox.currentText() == 'Dark Fusion':
+                dark_theme = True
+            else:
+                dark_theme = False
+
+        elif selected_style == 'Adwaita-Dark':
+            dark_theme = True
+
+        elif selected_style == 'Adwaita' or selected_style == 'macintosh':
+            dark_theme = False
+
+        if dark_theme == True:
+            self.icon_comboBox.clear()
+
+            if selected_size < 48:
+                icons = ['Breeze-Dark', 'Papirus-Dark']
+            else:
+                icons = ['Breeze-Dark']
+ 
+            self.icon_comboBox.addItems(icons)
+
+            # current_icons_index is -1, if findText couldn't find icon index.
+            current_icons_index = self.icon_comboBox.findText(
+                str(self.persepolis_setting.value('icons', self.current_icon)))
+
+            if current_icons_index == -1:
+                current_icons_index = 0
+
+            self.icon_comboBox.setCurrentIndex(current_icons_index)
+
+        elif dark_theme == False:
+
+            if selected_size < 48:
+                icons = ['Breeze', 'Papirus', 'Papirus-Light']
+            else:
+                icons = ['Breeze', 'Papirus']
+
+
+            self.icon_comboBox.addItems(icons)
+
+            # current_icons_index is -1, if findText couldn't find icon index.
+            current_icons_index = self.icon_comboBox.findText(
+                str(self.persepolis_setting.value('icons', self.current_icon)))
+
+            if current_icons_index == -1:
+                current_icons_index = 0
+
+            self.icon_comboBox.setCurrentIndex(current_icons_index)
+
+
+        else:
+            if selected_size < 48:
+                icons = ['Breeze', 'Breeze-Dark', 'Papirus',
+                        'Papirus-Dark', 'Papirus-Light']
+            else:
+                icons = ['Breeze', 'Breeze-Dark', 'Papirus']
+ 
+            self.icon_comboBox.addItems(icons)
+
+            # current_icons_index is -1, if findText couldn't find icon index.
+            current_icons_index = self.icon_comboBox.findText(
+                str(self.persepolis_setting.value('icons', self.current_icon)))
+
+            if current_icons_index == -1:
+                current_icons_index = 0
+
+            self.icon_comboBox.setCurrentIndex(current_icons_index)
+
 
     def fontCheckBoxState(self, checkBox):
 
-        # deactive fontComboBox and font_size_spinBox if font_checkBox not checked!
+        # deactivate fontComboBox and font_size_spinBox if font_checkBox not checked!
         if self.font_checkBox.isChecked():
             self.fontComboBox.setEnabled(True)
             self.font_size_spinBox.setEnabled(True)
         else:
             self.fontComboBox.setEnabled(False)
             self.font_size_spinBox.setEnabled(False)
+
+    # close window with ESC key
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
 
     def closeEvent(self, event):
 
@@ -879,13 +951,13 @@ class PreferencesWindow(Setting_Ui):
         if self.startup_checkbox.isChecked():
             self.persepolis_setting.setValue('startup', 'yes')
 
-            if not(startup.checkstartup()):  # checking existance of Persepolis in  system's startup
+            if not(startup.checkstartup()):  # checking existence of Persepolis in  system's startup
 
                 startup.addstartup()  # adding Persepolis to system's startup
         else:
             self.persepolis_setting.setValue('startup', 'no')
 
-            if startup.checkstartup():  # checking existance of Persepolis in  system's startup
+            if startup.checkstartup():  # checking existence of Persepolis in  system's startup
 
                 startup.removestartup()  # removing Persepolis from system's startup
 

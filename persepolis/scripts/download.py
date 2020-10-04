@@ -13,10 +13,11 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from persepolis.scripts.useful_tools import freeSpace, humanReadbleSize
-from persepolis.scripts.osCommands import moveFile
+from persepolis.scripts.osCommands import moveFile, makeTempDownloadDir
+from persepolis.scripts.useful_tools import freeSpace, humanReadableSize
 from persepolis.scripts.bubble import notifySend
 from persepolis.scripts import logger
+from persepolis.constants import OS
 from PyQt5.QtCore import QSettings
 import xmlrpc.client
 import urllib.parse
@@ -59,7 +60,7 @@ server = xmlrpc.client.ServerProxy(server_uri, allow_none=True)
 
 def startAria():
     # in Linux and BSD
-    if os_type == 'Linux' or os_type == 'FreeBSD' or os_type == 'OpenBSD':
+    if os_type in OS.UNIX_LIKE:
 
         subprocess.Popen(['aria2c', '--no-conf',
                           '--enable-rpc', '--rpc-listen-port=' + str(port),
@@ -71,7 +72,7 @@ def startAria():
                          shell=False)
 
     # in macintosh
-    elif os_type == 'Darwin':
+    elif os_type == OS.OSX:
         if aria2_path == "" or aria2_path == None or os.path.isfile(str(aria2_path)) == False:
 
             cwd = sys.argv[0]
@@ -91,7 +92,7 @@ def startAria():
                          shell=False)
 
     # in Windows
-    elif os_type == 'Windows':
+    elif os_type == OS.WINDOWS:
         if aria2_path == "" or aria2_path == None or os.path.isfile(str(aria2_path)) == False:
             cwd = sys.argv[0]
             current_directory = os.path.dirname(cwd)
@@ -124,7 +125,7 @@ def startAria():
     return answer
 
 # check aria2 release version . Persepolis uses this function to
-# check that aria2 RPC conection is available or not.
+# check that aria2 RPC connection is available or not.
 
 
 def aria2Version():
@@ -239,12 +240,33 @@ def downloadAria(gid, parent):
             limit = str(limit_number) + limit_unit
 
 
-# set start_time value to None in data_base!
+        # set start_time value to None in data_base!
         parent.persepolis_db.setDefaultGidInAddlinkTable(gid, start_time=True)
 
-# find download_path_temp from persepolis_setting
+    # Find download_path_temp from persepolis_setting
+    # if download_path_temp and download_path aren't in same partition on hard disk,
+    # then create new temp folder in that partition.
+    # Why? when download is completed, file must be moved to download_path from temp folder.
+    # It helps moving speed :)
     persepolis_setting.sync()
+
+    # Find default download_path_temp
     download_path_temp = persepolis_setting.value('settings/download_path_temp')
+
+    # Find user's selected download_path
+    download_path = add_link_dictionary['download_path'] 
+
+    # check is download_path is existed
+    if os.path.isdir(download_path):
+
+        if os.lstat(download_path).st_dev != os.lstat(download_path_temp).st_dev:
+
+            # Create folder and give new temp address from makeTempDownloadDir function.
+            # Please checkout osCommands.py for more information.
+            download_path_temp = makeTempDownloadDir(download_path) 
+    else:
+        # write an error in logger
+        logger.sendToLog("download_path is not found!", "ERROR")
 
     if start_time_status != 'stopped':
         # send download request to aria2
@@ -298,15 +320,13 @@ def downloadAria(gid, parent):
             error_message = str(traceback.format_exc())
             logger.sendToLog(error_message, "ERROR")
 
-            # return None!
-            return None
+            # return False!
+            return False
     else:
         # if start_time_status is "stopped" it means download Canceled by user
         logger.sendToLog("Download Canceled", "INFO")
 
 # this function returns list of download information
-
-
 def tellActive():
     # get download information from aria2
     try:
@@ -351,7 +371,7 @@ def tellStatus(gid, parent):
     if (converted_info_dict['status'] == "complete"):
         file_name = converted_info_dict['file_name']
 
-        # find user prefered download_path from addlink_db_table in data_base
+        # find user preferred download_path from addlink_db_table in data_base
         add_link_dictionary = parent.persepolis_db.searchGidInAddLinkTable(gid)
 
         persepolis_setting.sync()
@@ -391,7 +411,7 @@ def tellStatus(gid, parent):
         add_link_dictionary['download_path'] = file_path
         parent.persepolis_db.updateAddLinkTable([add_link_dictionary])
 
-# if an error occured!
+# if an error occurred!
     if (converted_info_dict['status'] == "error"):
         # add errorMessage to converted_info_dict
         converted_info_dict['error'] = str(download_status['errorMessage'])
@@ -448,10 +468,10 @@ def convertDownloadInformation(download_status):
         file_size_back = file_size
 
         # converting file_size to KiB or MiB or GiB
-        size_str = humanReadbleSize(file_size)
+        size_str = humanReadableSize(file_size)
         downloaded_back = downloaded
 
-        downloaded_str = humanReadbleSize(downloaded)
+        downloaded_str = humanReadableSize(downloaded)
 
         # find download percent from file_size and downloaded_size
         file_size = file_size_back
@@ -475,7 +495,7 @@ def convertDownloadInformation(download_status):
         estimate_time_left = int((file_size - downloaded)/download_speed)
 
         # converting file_size to KiB or MiB or GiB
-        download_speed_str = humanReadbleSize(download_speed, 'speed') + '/s'
+        download_speed_str = humanReadableSize(download_speed, 'speed') + '/s'
 
         eta = ""
         if estimate_time_left >= 3600:
@@ -689,8 +709,8 @@ def downloadStop(gid, parent):
     # if status in not "scheduled" so stop request must be sended to aria2.
     if status != 'scheduled':
         try:
-            # send remove download request to aira2.
-            # see aria2 documentation for more informations.
+            # send remove download request to aria2.
+            # see aria2 documentation for more information.
             answer = server.aria2.remove(gid)
             if status == 'downloading':
                 server.aria2.removeDownloadResult(gid)
@@ -721,7 +741,7 @@ def downloadStop(gid, parent):
 def downloadPause(gid):
     # see aria2 documentation for more information
 
-    # send pause request to aira2 .
+    # send pause request to aria2 .
     try:
         answer = server.aria2.pause(gid)
     except:
@@ -825,7 +845,7 @@ def startTime(start_time, gid, parent):
 
     status = 'scheduled'
 
-  # this loop is countinuing until download time arrival!
+  # this loop is continuing until download time arrival!
     while sigma_start != sigma_now:
         time.sleep(2.1)
         sigma_now = nowTime()
@@ -835,7 +855,7 @@ def startTime(start_time, gid, parent):
         data_base_download_status = dict['status']
 
         # if data_base_download_status = stopped >> it means that user
-        # canceled download , and loop must be breaked!
+        # canceled download and loop must break!
         if data_base_download_status == 'stopped':
             status = 'stopped'
             break
@@ -891,7 +911,7 @@ def endTime(end_time, gid, parent):
             i = i + 1
 
         # If aria2c not respond, so kill it. R.I.P :))
-        if (answer == 'None') and (os_type != 'Windows'):
+        if (answer == 'None') and (os_type != OS.WINDOWS):
 
             subprocess.Popen(['killall', 'aria2c'],
                              stderr=subprocess.PIPE,

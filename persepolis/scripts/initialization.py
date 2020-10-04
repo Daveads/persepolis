@@ -148,7 +148,6 @@ if persepolis_setting.value('subfolder') == 'yes':
 for folder in folder_list:
     osCommands.makeDirs(folder)
 
-
 persepolis_setting.endGroup()
 
 # Browser integration for Firefox and chromium and google chrome
@@ -175,10 +174,10 @@ for browser in ['chrome', 'chromium', 'opera', 'vivaldi', 'firefox']:
 locale = str(persepolis_setting.value('settings/locale'))
 
 # right to left languages
-rtl_locale_list = ['fa_IR']
+rtl_locale_list = ['fa_IR', 'ar']
 
 # left to right languages
-ltr_locale_list = ['en_US', 'zh_CN', 'fr_FR', 'pl_PL', 'nl_NL', 'pt_BR', 'es_ES']
+ltr_locale_list = ['en_US', 'zh_CN', 'fr_FR', 'pl_PL', 'nl_NL', 'pt_BR', 'es_ES', 'hu', 'tr', 'tr_TR']
 
 if locale in rtl_locale_list:
     persepolis_setting.setValue('ui_direction', 'rtl')
@@ -210,19 +209,7 @@ if persepolis_version < 2.6:
 
     persepolis_version = 2.6
 
-if persepolis_version < 3.0:
-    persepolis_setting.beginGroup('settings')
-
-    for key in default_setting_dict.keys():
-
-        setting_value = default_setting_dict[key]
-        persepolis_setting.setValue(key, setting_value)
-
-    persepolis_setting.endGroup()
-
-    persepolis_setting.setValue('version/version', 3.0)
-
-if persepolis_version != 3.1:
+if persepolis_version < 3.1:
     # create an object for PersepolisDB
     persepolis_db = PersepolisDB()
 
@@ -232,7 +219,18 @@ if persepolis_version != 3.1:
     # close connections
     persepolis_db.closeConnections()
 
-persepolis_setting.setValue('version/version', 3.1)
+    persepolis_version = 3.1
 
+if persepolis_version < 3.2:
+    persepolis_setting.beginGroup('settings')
+
+    for key in default_setting_dict.keys():
+
+        setting_value = default_setting_dict[key]
+        persepolis_setting.setValue(key, setting_value)
+
+    persepolis_setting.endGroup()
+
+    persepolis_setting.setValue('version/version', 3.2)
 
 persepolis_setting.sync()

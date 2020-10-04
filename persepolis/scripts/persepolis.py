@@ -25,6 +25,7 @@ import struct
 import argparse
 from persepolis.scripts import osCommands
 from persepolis.scripts.useful_tools import osAndDesktopEnvironment, determineConfigFolder
+from persepolis.constants import OS
 from copy import deepcopy
 import sys
 import os
@@ -33,7 +34,7 @@ import os
 os_type, desktop_env = osAndDesktopEnvironment()
 
 # Don't run persepolis as root!
-if os_type == 'Linux' or os_type == 'FreeBSD' or os_type == 'OpenBSD' or os_type == 'Darwin':
+if os_type in (OS.UNIX_LIKE + [OS.OSX]):
     uid = os.getuid()
     if uid == 0:
         print('Do not run persepolis as root.')
@@ -52,11 +53,11 @@ config_folder = determineConfigFolder()
 persepolis_tmp = os.path.join(config_folder, 'persepolis_tmp')
 
 
-# if lock_file_validation == True >> not another instanse running,
-# else >> another instanse of persepolis is running now.
+# if lock_file_validation == True >> not another instance running,
+# else >> another instance of persepolis is running now.
 global lock_file_validation
 
-if os_type != 'Windows':
+if os_type != OS.WINDOWS:
     import fcntl
     user_name_split = home_address.split('/')
     user_name = user_name_split[2]
@@ -93,7 +94,7 @@ if lock_file_validation:
     from persepolis.scripts.mainwindow import MainWindow
 
 # set "persepolis" name for this process in linux and bsd
-    if os_type == 'Linux' or os_type == 'FreeBSD' or os_type == 'OpenBSD':
+    if os_type in OS.UNIX_LIKE:
         try:
             from setproctitle import setproctitle
             setproctitle("persepolis")
@@ -160,12 +161,12 @@ parser.add_argument('--tray', action='store_true',
                     help="Persepolis is starting in tray icon. It's useful when you want to put persepolis in system's startup.")
 parser.add_argument('--parent-window', action='store', nargs=1,
                     help='this switch is used for chrome native messaging in Windows')
-parser.add_argument('--version', action='version', version='Persepolis Download Manager 3.1.0')
+parser.add_argument('--version', action='version', version='Persepolis Download Manager 3.2.0')
 
 
-# Clears unwated args ( like args from Browers via NHM )
-# unkown arguments (may sent by browser) will save in unkownargs.
-args, unkownargs = parser.parse_known_args()
+# Clears unwanted args ( like args from Browers via NHM )
+# unknown arguments (may sent by browser) will save in unknownargs.
+args, unknownargs = parser.parse_known_args()
 
 # if --execute >> yes  >>> persepolis main window  will start.
 # if --execute >> no >>> persepolis started before!
@@ -184,10 +185,10 @@ browser_plugin_dict = {'link': None,
 
 # This dirty trick will show Persepolis version when there are unknown args
 # Unknown args are sent by Browsers for NHM
-if args.parent_window or unkownargs:
+if args.parent_window or unknownargs:
 
     # Platform specific configuration
-    if os_type == "Windows":
+    if os_type == OS.WINDOWS:
         # Set the default I/O mode to O_BINARY in windows
         import msvcrt
         msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
@@ -309,10 +310,10 @@ else:
 
 
 # when browsers plugin calls persepolis or user runs persepolis by terminal arguments,
-# then persepolis creats a request file in persepolis_tmp folder and link information added to
+# then persepolis creates a request file in persepolis_tmp folder and link information added to
 # plugins_db.db file(see data_base.py for more information).
 # persepolis mainwindow checks persepolis_tmp for plugins request file every 2 seconds (see CheckingThread class in mainwindow.py)
-# when requset received in CheckingThread, a popup window (AddLinkWindow) comes up and window gets additional download information
+# when request received in CheckingThread, a popup window (AddLinkWindow) comes up and window gets additional download information
 # from user (port , proxy , ...) and download starts and request file deleted
 
 if ('link' in add_link_dictionary.keys()):
@@ -350,7 +351,7 @@ if len(plugin_list) != 0:
 
 # start persepolis in system tray if browser executed
 # and if user select this option in preferences window.
-if str(persepolis_setting.value('settings/browser-persepolis')) == 'yes' and (args.parent_window or unkownargs):
+if str(persepolis_setting.value('settings/browser-persepolis')) == 'yes' and (args.parent_window or unknownargs):
     start_persepolis_if_browser_executed = True
     start_in_tray = True
 else:
@@ -359,7 +360,7 @@ else:
 
 def main():
     # if lock_file is existed , it means persepolis is still running!
-    if lock_file_validation and (not((args.parent_window or unkownargs) and browser_url == False) or ((args.parent_window or unkownargs) and start_persepolis_if_browser_executed)):
+    if lock_file_validation and (not((args.parent_window or unknownargs) and browser_url == False) or ((args.parent_window or unknownargs) and start_persepolis_if_browser_executed)):
 
         # set QT_AUTO_SCREEN_SCALE_FACTOR to 1 for "high DPI displays"
         os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
@@ -369,6 +370,18 @@ def main():
         # set color_scheme and style
         # see palettes.py and setting.py
 
+        # this line is added fot fixing persepolis view in HighDpi displays
+        # more information at: https://doc.qt.io/qt-5/highdpi.html
+        try:
+            QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        except:
+            from persepolis.scripts import logger
+
+            # write error_message in log file.
+            logger.sendToLog('Qt.AA_EnableHighDpiScaling is not available!', "ERROR")
+
+
+        # create QApplication
         persepolis_download_manager = PersepolisApplication(sys.argv)
 
         # setQuitOnLastWindowClosed(False) is needed to prevent persepolis exiting,
@@ -377,7 +390,6 @@ def main():
 
         # Enable High DPI display with PyQt5
         try:
-            persepolis_download_manager.setAttribute(Qt.AA_EnableHighDpiScaling)
             if hasattr(QStyleFactory, 'AA_UseHighDpiPixmaps'):
                 persepolis_download_manager.setAttribute(Qt.AA_UseHighDpiPixmaps)
         except:
@@ -386,7 +398,7 @@ def main():
             # write error_message in log file.
             logger.sendToLog('Qt.AA_UseHighDpiPixmaps is not available!', "ERROR")
 
-        # set organization name and domain and apllication name
+        # set organization name and domain and application name
         QCoreApplication.setOrganizationName('persepolis_download_manager')
         QCoreApplication.setApplicationName('persepolis')
 
@@ -438,7 +450,7 @@ def main():
 
         sys.exit(persepolis_download_manager.exec_())
 
-    elif not((args.parent_window or unkownargs)):
+    elif not((args.parent_window or unknownargs)):
 
         # this section warns user that program is still running and no need to run it again
         # and creating a file to notify mainwindow for showing itself!

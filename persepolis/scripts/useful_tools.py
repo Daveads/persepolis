@@ -14,6 +14,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QStyleFactory
+from persepolis.constants.Os import OS
 import urllib.parse
 import subprocess
 import platform
@@ -35,17 +36,17 @@ os_type = platform.system()
 home_address = os.path.expanduser("~")
 
 
-# determine the config folder path base on the oprating system
+# determine the config folder path based on the operating system
 def determineConfigFolder():
-    if os_type == 'Linux' or os_type == 'FreeBSD' or os_type == 'OpenBSD':
+    if os_type in OS.UNIX_LIKE:
         config_folder = os.path.join(
-            str(home_address), ".config/persepolis_download_manager")
-    elif os_type == 'Darwin':
+            home_address, ".config/persepolis_download_manager")
+    elif os_type == OS.OSX:
         config_folder = os.path.join(
-            str(home_address), "Library/Application Support/persepolis_download_manager")
-    elif os_type == 'Windows':
+            home_address, "Library/Application Support/persepolis_download_manager")
+    elif os_type == OS.WINDOWS:
         config_folder = os.path.join(
-            str(home_address), 'AppData', 'Local', 'persepolis_download_manager')
+            home_address, 'AppData', 'Local', 'persepolis_download_manager')
 
     return config_folder
 
@@ -54,7 +55,7 @@ def determineConfigFolder():
 
 def osAndDesktopEnvironment():
     desktop_env = None
-    if os_type == 'Linux' or os_type == 'FreeBSD' or os_type == 'OpenBSD':
+    if os_type in OS.UNIX_LIKE:
         # find desktop environment('KDE', 'GNOME', ...)
         desktop_env = os.environ.get('XDG_CURRENT_DESKTOP')
 
@@ -62,7 +63,7 @@ def osAndDesktopEnvironment():
 
 
 # this function converts file_size to KiB or MiB or GiB
-def humanReadbleSize(size, input_type='file_size'): 
+def humanReadableSize(size, input_type='file_size'): 
     labels = ['KiB', 'MiB', 'GiB', 'TiB']
     i = -1
     if size < 1024:
@@ -82,7 +83,7 @@ def humanReadbleSize(size, input_type='file_size'):
     else:
         return str(round(size, None)) + ' ' + labels[i]
 
-# this function converts human readble size to byte
+# this function converts human readable size to byte
 
 
 def convertToByte(file_size):
@@ -149,29 +150,25 @@ def returnDefaultSettings():
     os_type, desktop_env = osAndDesktopEnvironment()
 
     # persepolis temporary download folder
-    if os_type != 'Windows':
-        download_path_temp = str(home_address) + '/.persepolis'
+    if os_type != OS.WINDOWS:
+        download_path_temp = home_address + '/.persepolis'
     else:
         download_path_temp = os.path.join(
-            str(home_address), 'AppData', 'Local', 'persepolis')
+            home_address, 'AppData', 'Local', 'persepolis')
 
     # user download folder path
-    download_path = os.path.join(str(home_address), 'Downloads', 'Persepolis')
+    download_path = os.path.join(home_address, 'Downloads', 'Persepolis')
 
     # find available styles(It's depends on operating system and desktop environments).
     available_styles = QStyleFactory.keys()
     style = 'Fusion'
-    color_scheme = 'System'
-    icons = 'Breeze'
-    if os_type == 'Linux' or os_type == 'FreeBSD' or 'os_type' == 'OpenBSD':
+    color_scheme = 'Dark Fusion'
+    icons = 'Breeze-Dark'
+    if os_type in OS.UNIX_LIKE:
         if desktop_env == 'KDE':
             if 'Breeze' in available_styles:
                 style = 'Breeze'
                 color_scheme = 'System'
-            else:
-                style = 'Fusion'
-                color_scheme = 'Persepolis Light Blue'
-
         else:
             # finout user prefers dark theme or light theme :)
             # read this links for more information:
@@ -202,9 +199,6 @@ def returnDefaultSettings():
                 if 'Adwaita-Dark' in available_styles:
                     style = 'Adwaita-Dark'
                     color_scheme = 'System'
-                else:
-                    style = 'Fusion'
-                    color_scheme = 'Persepolis Dark Blue'
 
             else:
                 icons = 'Breeze'
@@ -213,22 +207,23 @@ def returnDefaultSettings():
                     color_scheme = 'System'
                 else:
                     style = 'Fusion'
-                    color_scheme = 'Persepolis Light Blue'
+                    color_scheme = 'Light Fusion'
 
-    elif os_type == 'Darwin':
-        style = 'macintosh'
-        color_scheme = 'System'
-        icons = 'Breeze'
+    elif os_type == OS.OSX:
+        if 'macintosh' in available_styles:
+            style = 'macintosh'
+            color_scheme = 'System'
+            icons = 'Breeze'
 
-    elif os_type == 'Windows':
+    elif os_type == OS.WINDOWS:
         style = 'Fusion'
-        color_scheme = 'System'
-        icons = 'Breeze'
+        color_scheme = 'Dark Fusion'
+        icons = 'Breeze-Dark'
 
     else:
         style = 'Fusion'
-        color_scheme = 'System'
-        icons = 'Breeze'
+        color_scheme = 'Dark Fusion'
+        icons = 'Breeze-Dark'
 
     # keyboard shortcuts
     delete_shortcut = "Ctrl+D"
@@ -274,7 +269,7 @@ def muxer(parent, video_finder_dictionary):
     audio_file_path = audio_file_dictionary['download_path']
     final_path = video_finder_dictionary['download_path']
 
-    # caculate final file's size
+    # calculate final file's size
     video_file_size = parent.persepolis_db.searchGidInDownloadTable(video_finder_dictionary['video_gid'])['size']
     audio_file_size = parent.persepolis_db.searchGidInDownloadTable(video_finder_dictionary['audio_gid'])['size']
 
@@ -313,20 +308,20 @@ def muxer(parent, video_finder_dictionary):
 
             # rename file if file already existed
             i = 1
-            final_path_pluse_name = os.path.join(final_path, final_file_name)
+            final_path_plus_name = os.path.join(final_path, final_file_name)
 
-            while os.path.isfile(final_path_pluse_name):
+            while os.path.isfile(final_path_plus_name):
 
                 extension_length = len(file_name_split[-1]) + 1
 
                 new_name = final_file_name[0:-extension_length] + \
                     '_' + str(i) + final_file_name[-extension_length:]
 
-                final_path_pluse_name = os.path.join(final_path, new_name)
+                final_path_plus_name = os.path.join(final_path, new_name)
                 i = i + 1
 
             # start muxing
-            if os_type == 'Linux' or os_type == 'FreeBSD' or os_type == 'OpenBSD':
+            if os_type in OS.UNIX_LIKE:
                 pipe = subprocess.Popen(['ffmpeg', '-i', video_file_path,
                                          '-i', audio_file_path,
                                          '-c', 'copy',
@@ -335,13 +330,13 @@ def muxer(parent, video_finder_dictionary):
                                          '-map', '1:a:0',
                                          '-loglevel', 'error',
                                          '-strict', '-2',
-                                         final_path_pluse_name],
+                                         final_path_plus_name],
                                         stderr=subprocess.PIPE,
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         shell=False)
 
-            elif os_type == 'Darwin':
+            elif os_type == OS.DARWIN:
                 # ffmpeg path in mac
                 # ...path/Persepolis Download Manager.app/Contents/MacOS/ffmpeg
                 cwd = sys.argv[0]
@@ -356,13 +351,13 @@ def muxer(parent, video_finder_dictionary):
                                          '-map', '1:a:0',
                                          '-loglevel', 'error',
                                          '-strict', '-2',
-                                         final_path_pluse_name],
+                                         final_path_plus_name],
                                         stderr=subprocess.PIPE,
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         shell=False)
 
-            elif os_type == 'Windows':
+            elif os_type == OS.WINDOWS:
                 # ffmpeg path in windows
                 cwd = sys.argv[0]
                 current_directory = os.path.dirname(cwd)
@@ -379,7 +374,7 @@ def muxer(parent, video_finder_dictionary):
                                          '-map', '1:a:0',
                                          '-loglevel', 'error',
                                          '-strict', '-2',
-                                         final_path_pluse_name],
+                                         final_path_plus_name],
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -390,13 +385,13 @@ def muxer(parent, video_finder_dictionary):
                 # muxing was finished successfully.
                 result_dictionary['error'] = 'no error'
 
-                result_dictionary['final_path'] = final_path_pluse_name
-                result_dictionary['final_size'] = humanReadbleSize(final_file_size)
+                result_dictionary['final_path'] = final_path_plus_name
+                result_dictionary['final_size'] = humanReadableSize(final_file_size)
 
             else:
                 result_dictionary['error'] = 'ffmpeg error'
                 out, ffmpeg_error_message = pipe.communicate()
 
-                result_dictionary['ffmpeg_error_message'] = ffmpeg_error_message.decode('utf-8')
+                result_dictionary['ffmpeg_error_message'] = ffmpeg_error_message.decode('utf-8', 'ignore')
 
     return result_dictionary

@@ -1,6 +1,7 @@
 <!DOCTYPE RCC><RCC version="1.0">
 	<qresource prefix="/">
 
+        <file>translators.txt</file>
         <file>persepolis.svg</file>
         <file>persepolis-tray.svg</file>
 		<file>Breeze/about.svg</file>		
@@ -177,6 +178,10 @@
         <file>dark fusion/up_arrow_disabled.svg</file>
         <file>dark fusion/up_arrow.svg</file>
         <file>dark fusion/up_arrow_hover.svg</file>
+        <file>dark fusion/left_arrow.svg</file>
+        <file>dark fusion/left_arrow_disabled.svg</file>
+        <file>dark fusion/right_arrow.svg</file>
+        <file>dark fusion/right_arrow_disabled.svg</file>
  
         <file>dark fusion/checkbox_checked_disabled.svg</file>
         <file>dark fusion/checkbox_checked.svg</file>
@@ -193,6 +198,10 @@
         <file>light fusion/up_arrow_disabled.svg</file>
         <file>light fusion/up_arrow.svg</file>
         <file>light fusion/up_arrow_hover.svg</file>
+        <file>light fusion/left_arrow.svg</file>
+        <file>light fusion/left_arrow_disabled.svg</file>
+        <file>light fusion/right_arrow.svg</file>
+        <file>light fusion/right_arrow_disabled.svg</file>
  
         <file>light fusion/checkbox_checked_disabled.svg</file>
         <file>light fusion/checkbox_checked.svg</file>
@@ -213,6 +222,10 @@
         <file>locales/ui_nl_NL.qm</file>
         <file>locales/ui_es_ES.qm</file>
         <file>locales/ui_pt_BR.qm</file>
+        <file>locales/ui_ar.qm</file>
+        <file>locales/ui_hu.qm</file>
+        <file>locales/ui_tr.qm</file>
+        <file>locales/ui_tr_TR.qm</file>
 
 	</qresource>	
 

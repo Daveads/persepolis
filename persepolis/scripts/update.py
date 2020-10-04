@@ -14,7 +14,9 @@
 #
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
-from PyQt5.QtCore import QSize, QPoint, QTranslator, QCoreApplication, QLocale
+from PyQt5.QtCore import Qt, QSize, QPoint, QTranslator, QCoreApplication, QLocale
+
+from persepolis.constants import OS
 from persepolis.scripts import osCommands
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon
@@ -47,17 +49,17 @@ class checkupdate(QWidget):
         self.setWindowTitle(QCoreApplication.translate("update_src_ui_tr", 'Checking for newer version'))
 
         # installed version
-        self.client_version = '3.10'
+        self.client_version = '3.20'
 
         # first line text
         self.update_label = QLabel(QCoreApplication.translate(
-            "update_src_ui_tr", "The newest is the best , We recommend to update Persepolis"))
+            "update_src_ui_tr", "The newest is the best, we recommend to update Persepolis."))
         self.update_label.setTextFormat(QtCore.Qt.RichText)
         self.update_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # second line text
         self.version_label = QLabel(QCoreApplication.translate(
-            "update_src_ui_tr", 'This is Persepolis Download Manager version 3.1.0'))
+            "update_src_ui_tr", 'This is Persepolis Download Manager version 3.2.0'))
         self.version_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # release link
@@ -118,7 +120,7 @@ class checkupdate(QWidget):
                 self.status_label.setText(QCoreApplication.translate(
                     "update_src_ui_tr", 'A newer Persepolis release is available'))
 
-                if os_type == 'Windows':
+                if os_type == OS.WINDOWS:
                     self.winUpdatedl()  # this function download latest release
 
                     # find system architect
@@ -130,7 +132,7 @@ class checkupdate(QWidget):
 
                         osCommands.xdgOpen(updatesource_dict['win32dlurl'])
 
-                elif os_type == 'Darwin':
+                elif os_type == OS.OSX:
                     osCommands.xdgOpen(updatesource_dict['macdlurl'])  # it will download latest release for mac
 
             elif float(server_version) == float(self.client_version):
@@ -142,9 +144,15 @@ class checkupdate(QWidget):
 
         except Exception as e:
             self.status_label.setText(QCoreApplication.translate(
-                "update_src_ui_tr", 'An error occured while checking for updates.'))
+                "update_src_ui_tr", 'An error occurred while checking for updates.'))
 
         self.check_button.setText(QCoreApplication.translate("update_src_ui_tr", 'Check for new update'))
+
+    # close window with ESC key
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
 
     def closeEvent(self, event):
         # saving window size and position

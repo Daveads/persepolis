@@ -14,19 +14,19 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QSize, QPoint, QThread, QTranslator, QCoreApplication, QLocale
+from PyQt5.QtCore import Qt, QSize, QPoint, QThread, QTranslator, QCoreApplication, QLocale
 from PyQt5.QtWidgets import QLineEdit, QWidget, QSizePolicy,  QInputDialog
 from persepolis.gui.progress_ui import ProgressWindow_Ui
 from persepolis.scripts.shutdown import shutDown
 from persepolis.scripts.bubble import notifySend
 from persepolis.scripts import download
+from persepolis.constants import OS
 from PyQt5.QtGui import QIcon
 import subprocess
 import platform
 import time
 
 os_type = platform.system()
-
 
 class ShutDownThread(QThread):
     def __init__(self, parent, gid, password=None):
@@ -67,7 +67,7 @@ class ProgressWindow(ProgressWindow_Ui):
         if self.translator.load(':/translations/locales/ui_' + locale, 'ts'):
             QCoreApplication.installTranslator(self.translator)
 
-# check if limit speed actived by user or not
+# check if limit speed activated by user or not
         add_link_dictionary = self.parent.persepolis_db.searchGidInAddLinkTable(gid)
 
         limit = str(add_link_dictionary['limit_value'])
@@ -94,6 +94,12 @@ class ProgressWindow(ProgressWindow_Ui):
             'ProgressWindow/position', QPoint(300, 300))
         self.resize(size)
         self.move(position)
+
+    # close window with ESC key
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
 
     def closeEvent(self, event):
         # save window size and position
@@ -172,7 +178,7 @@ class ProgressWindow(ProgressWindow_Ui):
 
             # check download status is "scheduled" or not!
             if self.status != 'scheduled':
-                # tell aria2 for unlimiting speed
+                # tell aria2 for unlimited speed
                 download.limitSpeed(self.gid, "0")
             else:
                 # update limit value in data_base
@@ -201,7 +207,7 @@ class ProgressWindow(ProgressWindow_Ui):
     def afterPushButtonPressed(self, button):
         self.after_pushButton.setEnabled(False)
 
-        if os_type != 'Windows':  # For Linux and Mac OSX and FreeBSD and OpenBSD
+        if os_type != OS.WINDOWS:  # For Linux and Mac OSX and FreeBSD and OpenBSD
 
             # get root password
             passwd, ok = QInputDialog.getText(

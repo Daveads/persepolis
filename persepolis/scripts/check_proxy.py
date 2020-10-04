@@ -14,12 +14,13 @@
 #
 
 
-from persepolis.scripts.useful_tools import osAndDesktopEnvironment
-from persepolis.scripts import logger
 import subprocess
 import requests
 import urllib
 import os
+from persepolis.scripts.useful_tools import osAndDesktopEnvironment
+from persepolis.scripts import logger
+from persepolis.constants import OS
 
 # get proxy function
 
@@ -35,8 +36,8 @@ def getProxy():
     logger.sendToLog(platform, "INFO")
 
     proxy = {}
-    if os_type == 'Linux' or os_type == 'FreeBSD' or os_type == 'OpenBSD':
-        if desktop is None:
+    if os_type in OS.UNIX_LIKE:
+        if desktop == None:
             desktop_env_type = 'Desktop Environment not detected!'
         else:
             desktop_env_type = 'Desktop environment: ' + str(desktop)
@@ -78,14 +79,14 @@ def getProxy():
                     proxy['ftp_proxy_port'] = proxysource['ftpProxy'].split(' ')[1].replace("/", "").replace("\n", "")
                     proxy['ftp_proxy_ip'] = proxysource['ftpProxy'].split(' ')[0].split('//')[1]
                 except:
-                    logger.sendToLog('no manuall ftp proxy detected', 'INFO')
+                    logger.sendToLog('no manual ftp proxy detected', 'INFO')
 
                 # get http proxy
                 try:
                     proxy['http_proxy_port'] = proxysource['httpProxy'].split(' ')[1].replace("/", "").replace("\n", "")
                     proxy['http_proxy_ip'] = proxysource['httpProxy'].split(' ')[0].split('//')[1]
                 except:
-                    logger.sendToLog('no manuall http proxy detected', 'INFO')
+                    logger.sendToLog('no manual http proxy detected', 'INFO')
 
                 # get https proxy
                 try:
@@ -93,7 +94,7 @@ def getProxy():
                         ' ')[1].replace("/", "").replace("\n", "")
                     proxy['https_proxy_ip'] = proxysource['httpsProxy'].split(' ')[0].split('//')[1]
                 except:
-                    logger.sendToLog('no manuall https proxy detected', 'INFO')
+                    logger.sendToLog('no manual https proxy detected', 'INFO')
 
                 # get socks proxy
                 try:
@@ -104,7 +105,7 @@ def getProxy():
 
             # proxy disabled
             else:
-                logger.sendToLog('no manuall proxy detected', 'INFO')
+                logger.sendToLog('no manual proxy detected', 'INFO')
 
         # proxy file not exists
         else:
@@ -141,7 +142,7 @@ def getProxy():
             if desktop == 'GNOME' or desktop == 'Unity:Unity7':
                 socks_proxy = proxysource['all'].split(':')[1].replace('//', '')
             # if it is Mac OS
-            elif os_type == 'Darwin':
+            elif os_type == OS.OSX:
 
                 validKeys = ['SOCKSEnable']
 
@@ -153,7 +154,7 @@ def getProxy():
                     if len(words) == 3 and words[0] in validKeys:
                         mac_tmp_proxies_list[words[0]] = words[2]
 
-                if mac_tmp_proxies_list['SOCKSEnable'] is '1':
+                if mac_tmp_proxies_list['SOCKSEnable'] == '1':
                     socks_proxy = True
                 else:
                     socks_proxy = False
@@ -171,7 +172,7 @@ def getProxy():
             key_is_available = True
 
     if not key_is_available and socks_proxy:
-        # all print just for debugung
+        # all print just for debugging
         socks_message = "persepolis and aria2 don't support socks\n\
         you must convert socks proxy to http proxy.\n\
         Please read this for more help:\n\

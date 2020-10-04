@@ -13,8 +13,10 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QSize, QPoint, QThread, QTranslator, QCoreApplication, QLocale
+from PyQt5.QtCore import Qt, QSize, QPoint, QThread, QTranslator, QCoreApplication, QLocale
 from PyQt5.QtWidgets import QLineEdit, QWidget, QSizePolicy,  QInputDialog
+
+from persepolis.constants import OS
 from persepolis.gui.video_finder_progress_ui import VideoFinderProgressWindow_Ui
 from persepolis.scripts.shutdown import shutDown
 from persepolis.scripts.bubble import notifySend
@@ -48,7 +50,7 @@ class VideoFinderProgressWindow(VideoFinderProgressWindow_Ui):
         self.gid_list = gid_list
 
         # this variable can be changed by checkDownloadInfo method in mainwindow.py
-        # self.gid defines that wich gid is downloaded.
+        # self.gid defines that which gid is downloaded.
         self.gid = gid_list[0]
 
         # this variable used as category name in ShutDownThread
@@ -76,7 +78,7 @@ class VideoFinderProgressWindow(VideoFinderProgressWindow_Ui):
         if self.translator.load(':/translations/locales/ui_' + locale, 'ts'):
             QCoreApplication.installTranslator(self.translator)
 
-        # check if limit speed actived by user or not
+        # check if limit speed is activated by user or not
         add_link_dictionary = self.parent.persepolis_db.searchGidInAddLinkTable(gid_list[0])
 
         limit = str(add_link_dictionary['limit_value'])
@@ -103,6 +105,12 @@ class VideoFinderProgressWindow(VideoFinderProgressWindow_Ui):
             'ProgressWindow/position', QPoint(300, 300))
         self.resize(size)
         self.move(position)
+
+    # close window with ESC key
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
 
     def closeEvent(self, event):
 
@@ -187,7 +195,7 @@ class VideoFinderProgressWindow(VideoFinderProgressWindow_Ui):
 
                 if status != 'scheduled':
 
-                    # tell aria2 for unlimiting speed
+                    # tell aria2 for unlimited speed
                     download.limitSpeed(gid, "0")
 
                 else:
@@ -222,7 +230,7 @@ class VideoFinderProgressWindow(VideoFinderProgressWindow_Ui):
         self.after_pushButton.setEnabled(False)
 
         # For Linux and Mac OSX and FreeBSD and OpenBSD
-        if os_type != 'Windows':
+        if os_type != OS.WINDOWS:
 
             # get root password
             passwd, ok = QInputDialog.getText(
@@ -284,7 +292,7 @@ class VideoFinderProgressWindow(VideoFinderProgressWindow_Ui):
 
         else:
             # for Windows
-            for gid in gid_list:
+            for gid in self.gid_list:
                 shutdown_enable = ShutDownThread(self.parent, self.video_finder_plus_gid)
                 self.parent.threadPool.append(shutdown_enable)
                 self.parent.threadPool[len(self.parent.threadPool) - 1].start()

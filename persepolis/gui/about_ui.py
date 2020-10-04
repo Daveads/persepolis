@@ -14,10 +14,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QWidget, QTabWidget, QHBoxLayout, QVBoxLayout, QLabel, QTextEdit, QPushButton
-from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import Qt, QSize, QPoint, QTranslator, QCoreApplication, QLocale
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QIcon, QFont
 from persepolis.gui import resources
 
 try:
@@ -156,38 +156,10 @@ class AboutWindow_Ui(QWidget):
         self.translators_tab = QWidget(self)
         translators_tab_verticalLayout = QVBoxLayout(self.translators_tab)
 
-        # chinese translators
-        self.chinese_translators_label = QLabel(self.translators_tab)
-        self.chinese_translators_label.setFont(font)
-        self.chinese_translators_label.setAlignment(Qt.AlignCenter)
-        translators_tab_verticalLayout.addWidget(self.chinese_translators_label)
-
-        self.chinese_translatos_name_label = QLabel(self.translators_tab)
-        self.chinese_translatos_name_label.setAlignment(Qt.AlignCenter)
-        translators_tab_verticalLayout.addWidget(self.chinese_translatos_name_label)
-
-        # french translators
-        self.french_translators_label = QLabel(self.translators_tab)
-        self.french_translators_label.setFont(font)
-        self.french_translators_label.setAlignment(Qt.AlignCenter)
-        translators_tab_verticalLayout.addWidget(self.french_translators_label)
-
-        self.french_translatos_name_label = QLabel(self.translators_tab)
-        self.french_translatos_name_label.setAlignment(Qt.AlignCenter)
-        translators_tab_verticalLayout.addWidget(self.french_translatos_name_label)
-
-        # persian translators
-        self.persian_translators_label = QLabel(self.translators_tab)
-        self.persian_translators_label.setFont(font)
-        self.persian_translators_label.setAlignment(Qt.AlignCenter)
-
-        translators_tab_verticalLayout.addWidget(self.persian_translators_label)
-
-        self.persian_translatos_name_label = QLabel(self.translators_tab)
-        self.persian_translatos_name_label.setAlignment(Qt.AlignCenter)
-        translators_tab_verticalLayout.addWidget(self.persian_translatos_name_label)
-
-        translators_tab_verticalLayout.addStretch(1)
+        # translators
+        self.translators_textEdit = QTextEdit(self.translators_tab)
+        self.translators_textEdit.setReadOnly(True)
+        translators_tab_verticalLayout.addWidget(self.translators_textEdit)
 
         # License tab
         self.license_tab = QWidget(self)
@@ -216,7 +188,7 @@ class AboutWindow_Ui(QWidget):
 
         # about_tab
         self.title_label.setText(QCoreApplication.translate("about_ui_tr", "Persepolis Download Manager"))
-        self.version_label.setText(QCoreApplication.translate("about_ui_tr", "Version 3.1.0"))
+        self.version_label.setText(QCoreApplication.translate("about_ui_tr", "Version 3.2.0"))
         self.site2_label.setText(QCoreApplication.translate("about_ui_tr",
                                                             "<a href=https://persepolisdm.github.io>https://persepolisdm.github.io</a>",
                                                             "TRANSLATORS NOTE: YOU REALLY DON'T NEED TO TRANSLATE THIS PART!"))
@@ -239,23 +211,6 @@ class AboutWindow_Ui(QWidget):
         self.contributors_thank_label.setText(QCoreApplication.translate('about_ui_tr', 'Special thanks to:'))
         self.contributors_link_label.setText(
             "<a href=https://github.com/persepolisdm/persepolis/graphs/contributors>our contributors</a>")
-
-        # translators_tab
-        # Chinese
-        self.chinese_translators_label.setText(QCoreApplication.translate("about_ui_tr", "Chinese translators:"))
-
-        self.chinese_translatos_name_label.setText(QCoreApplication.translate("about_ui_tr", "Davinma\n210hcl\nleoxxx"))
-
-        # French
-        self.french_translators_label.setText(QCoreApplication.translate("about_ui_tr", "French translator:"))
-
-        self.french_translatos_name_label.setText(QCoreApplication.translate("about_ui_tr", "Simon Porte"))
-
-        # Persian
-        self.persian_translators_label.setText(QCoreApplication.translate("about_ui_tr", "Persian translators:"))
-
-        self.persian_translatos_name_label.setText(
-            QCoreApplication.translate("about_ui_tr", "H.Rostami\nMostafa Asadi"))
 
         # License
         self.license_text.setPlainText("""
